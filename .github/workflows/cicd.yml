@@ -1,0 +1,48 @@
+name: Industry MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout Latest Code from GitHub
+        uses: actions/checkout@v4
+
+      - name: 2. Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+      - name: 3. Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 4. Build, Auto-Train Model & Push Docker Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: cancer-detection-ml
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: 5. Deploy Latest Image to AWS EC2 Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 518969404497.dkr.ecr.eu-north-1.amazonaws.com
+            docker pull 518969404497.dkr.ecr.eu-north-1.amazonaws.com/cancer-detection-ml:latest
+            docker stop $(docker ps -q) || true
+            docker rm $(docker ps -a -q) || true
+            docker run -d -p 8501:8501 --name cancer-app 518969404497.dkr.ecr.eu-north-1.amazonaws.com/cancer-detection-ml:latest
+            docker image prune -f

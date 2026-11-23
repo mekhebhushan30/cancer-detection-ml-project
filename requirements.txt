@@ -3,6 +3,9 @@ numpy
 matplotlib
 seaborn
 scikit-learn
+imbalanced-learn
 joblib
 mlflow
 streamlit
+boto3
+s3fs
