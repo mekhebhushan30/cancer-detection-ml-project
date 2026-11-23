@@ -1,4 +1,3 @@
-cat << 'EOF' > .github/workflows/cicd.yml
 name: Industry MLOps CI/CD Pipeline
 
 on:
@@ -46,10 +45,9 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin ://amazonaws.com
-            docker pull ://amazonaws.com/cancer-detection-ml:latest
+            aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 518969404497.dkr.ecr.eu-north-1.amazonaws.com
+            docker pull 518969404497.dkr.ecr.eu-north-1.amazonaws.com/cancer-detection-ml:latest
             docker stop $(docker ps -q) || true
             docker rm $(docker ps -a -q) || true
-            docker run -d -p 8501:8501 --name cancer-app ://amazonaws.com/cancer-detection-ml:latest
+            docker run -d -p 8501:8501 --name cancer-app 518969404497.dkr.ecr.eu-north-1.amazonaws.com/cancer-detection-ml:latest
             docker image prune -f
-EOF
